@@ -1,0 +1,12 @@
+{
+  "name": "glitter",
+  "version": "1.0.0",
+  "description": "To be used with einhorn programs",
+  "main": "build/index.html",
+  "scripts": {},
+  "author": "Matthias Hannig",
+  "license": "MIT",
+  "dependencies": {
+    "fengari": "^0.1.2"
+  }
+}
