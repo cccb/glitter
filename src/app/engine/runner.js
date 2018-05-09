@@ -9,7 +9,6 @@ import {to_luastring,
 import Framebuffer from './framebuffer'
 
 export default class Runner {
-  
   /*
    * Initialize runner:
    *  - Create Lua state and setup framebuffer
@@ -18,11 +17,11 @@ export default class Runner {
     // Create Lua state
     this.L = lauxlib.luaL_newstate();
     lualib.luaL_openlibs(this.L);
-  
+
     // Initialize buffer
     this.framebuffer = new Framebuffer(this, 1, 14);
   }
-  
+
   /*
    * Load script and execute
    */
