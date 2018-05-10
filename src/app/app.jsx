@@ -15,12 +15,22 @@ let editor = CodeMirror.fromTextArea(textarea, {
 });
 
 runner.loadScript(editor.getValue());
-runner.render();
 
 
 let canvas = document.getElementById("shaderpreview");
 let vp = new Viewport(canvas);
 
-vp.render(runner.framebuffer);
+
+
+function draw(t) {
+  runner.render(t/1000);
+  vp.render(runner.framebuffer);
+  requestAnimationFrame(draw);
+}
+
+requestAnimationFrame(draw);
+
+
+
 
 

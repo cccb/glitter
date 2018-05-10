@@ -42,14 +42,14 @@ export default class Runner {
   /*
    * Call render function provided by lua script
    */
-  render() {
+  render(t) {
     if(!lua.lua_getglobal(this.L, "render")) {
       throw "render() function missing in script";
       return;
     }
     lua.lua_pushlightuserdata(this.L, this.framebuffer);
     lauxlib.luaL_setmetatable(this.L, "framebuffer");
-    lua.lua_pushnumber(this.L, 23.0);
+    lua.lua_pushnumber(this.L, t);
     lua.lua_pcall(this.L, 2, 0, 0);
   }
 
