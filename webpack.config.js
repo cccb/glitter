@@ -14,7 +14,7 @@ const config = {
   entry: {
     app: [
       path.join(__dirname, '/src/app/app.jsx'),
-    ]
+    ],
   },
 
   output: {

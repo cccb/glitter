@@ -7,6 +7,7 @@
   "author": "Matthias Hannig",
   "license": "MIT",
   "dependencies": {
+    "codemirror": "^5.37.0",
     "fengari": "^0.1.2",
     "font-awesome": "^4.7.0",
     "history": "^4.7.2",
