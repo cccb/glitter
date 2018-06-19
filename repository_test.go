@@ -44,5 +44,31 @@ func TestRepositorySetup(t *testing.T) {
 	if err != nil {
 		t.Error("Expected no error, because is initialized. Error:", err)
 	}
+}
+
+func TestListShader(t *testing.T) {
+	testRepoPath := os.TempDir() + "/shader-test-repo"
+	os.MkdirAll(testRepoPath, 0755)
+	defer os.RemoveAll(testRepoPath)
+
+	repo := NewShaderRepository("/home/benutzer/src/shader_repo")
+	if err := repo.Setup(); err != nil {
+		t.Error("Repository setup failed:", err)
+	}
+
+	shaders, err := repo.List()
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(shaders[0])
+
+	/*
+		if len(shaders) != 0 {
+			t.Error("Expected repo to be empty")
+		}
+	*/
+
+	// Create a shader
 
 }

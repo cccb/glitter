@@ -1,16 +1,21 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
+	"time"
 )
 
 /*
  Files / Shader repository
 */
 
-type ShaderMeta struct {
+type Shader struct {
+	Id          uint64 `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 
@@ -18,13 +23,8 @@ type ShaderMeta struct {
 
 	Token string `json:"token"`
 
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
-}
-
-type Shader struct {
-	Meta    *ShaderMeta
-	Program string
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type ShaderRepository struct {
@@ -102,8 +102,42 @@ func (self *ShaderRepository) Initialize() error {
 	return err
 }
 
-func (self *ShaderRepository) NewShader(name string) error {
-	return nil
+func (self *ShaderRepository) List() ([]*Shader, error) {
+	shaders := []*Shader{}
+
+	f, err := os.Open(self.basePath)
+	if err != nil {
+		return shaders, err
+	}
+	defer f.Close()
+
+	items, err := f.Readdir(0)
+	if err != nil {
+		return shaders, err
+	}
+
+	for _, item := range items {
+		if item.IsDir() == false {
+			continue
+		}
+
+		shaderId, err := strconv.ParseUint(item.Name(), 10, 64)
+		if err != nil {
+			log.Println("Found non numeric entry in shader path.")
+			log.Println("Please check if the repository is OK.")
+			continue
+		}
+
+		shader, err := self.LoadShader(shaderId)
+		if err != nil {
+			log.Println("Error while loading shader:", err)
+			continue
+		}
+
+		shaders = append(shaders, shader)
+	}
+
+	return shaders, nil
 }
 
 func (self *ShaderRepository) NextId() uint64 {
@@ -115,7 +149,7 @@ func (self *ShaderRepository) GetRepositoryIdentifierFilename() string {
 }
 
 func (self *ShaderRepository) GetPath(id uint64) string {
-	return self.basePath + "/" + string(id)
+	return fmt.Sprintf("%s/%d", self.basePath, id)
 }
 
 func (self *ShaderRepository) GetMetaFilename(id uint64) string {
@@ -126,6 +160,26 @@ func (self *ShaderRepository) GetProgramFilename(id uint64) string {
 	return self.GetPath(id) + "/program.lua"
 }
 
-func (self *Shader) Save(path string) error {
+func (self *ShaderRepository) LoadShader(id uint64) (*Shader, error) {
+	metaFilename := self.GetMetaFilename(id)
+	data, err := ioutil.ReadFile(metaFilename)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse metadata
+	var shader *Shader
+	err = json.Unmarshal(data, &shader)
+	if err != nil {
+		return nil, err
+	}
+
+	// Assert a valid shaderid
+	shader.Id = id
+
+	return shader, nil
+}
+
+func NewShader(name string) *Shader {
 	return nil
 }
