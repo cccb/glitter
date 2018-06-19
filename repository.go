@@ -1,5 +1,11 @@
 package main
 
+import (
+	"fmt"
+	"log"
+	"os"
+)
+
 /*
  Files / Shader repository
 */
@@ -22,11 +28,78 @@ type Shader struct {
 }
 
 type ShaderRepository struct {
-	BasePath string
+	basePath string
 }
 
-func NewShaderRepository(basePath string) (*ShaderRepository, error) {
-	return nil, nil
+func NewShaderRepository(basePath string) *ShaderRepository {
+	repo := &ShaderRepository{
+		basePath: basePath,
+	}
+
+	log.Println("Using shader repository:", basePath)
+
+	return repo
+}
+
+func (self *ShaderRepository) Setup() error {
+	if self.IsRepository() {
+		return nil // Nothing to do here
+	}
+
+	if err := self.CanInitialize(); err != nil {
+		return err
+	}
+
+	if err := self.Initialize(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (self *ShaderRepository) IsRepository() bool {
+	// Check if repository identifier exists
+	_, err := os.Stat(self.GetRepositoryIdentifierFilename())
+	if err != nil {
+		return false
+	}
+
+	return true
+}
+
+func (self *ShaderRepository) CanInitialize() error {
+	// Check if path exists and is empty
+	f, err := os.Open(self.basePath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	items, err := f.Readdir(0)
+	if err != nil {
+		return err
+	}
+
+	if len(items) != 0 {
+		return fmt.Errorf("Path not empty")
+	}
+
+	return nil
+}
+
+func (self *ShaderRepository) Initialize() error {
+	f, err := os.OpenFile(
+		self.GetRepositoryIdentifierFilename(),
+		os.O_RDWR|os.O_CREATE,
+		0644)
+
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.Write([]byte{})
+	return err
 }
 
 func (self *ShaderRepository) NewShader(name string) error {
@@ -37,8 +110,12 @@ func (self *ShaderRepository) NextId() uint64 {
 	return 1
 }
 
+func (self *ShaderRepository) GetRepositoryIdentifierFilename() string {
+	return self.basePath + "/SHADER_REPOSITORY"
+}
+
 func (self *ShaderRepository) GetPath(id uint64) string {
-	return self.BasePath + "/" + string(id)
+	return self.basePath + "/" + string(id)
 }
 
 func (self *ShaderRepository) GetMetaFilename(id uint64) string {
