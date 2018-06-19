@@ -34,7 +34,9 @@ func main() {
 
 	// Setup HTTP API
 	router := httprouter.New()
-	apiRegisterRoutes(router)
+	apiRegisterRoutes(&ApiContext{
+		ShaderRepo: shaderRepo,
+	}, router)
 
 	// Welcome Page
 	router.GET("/",
