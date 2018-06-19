@@ -86,7 +86,7 @@ func TestListShader(t *testing.T) {
 	}
 }
 
-func TestAddShader(t *testing.T) {
+func TestAddGetDeleteShader(t *testing.T) {
 	testRepoPath := os.TempDir() + "/shader-test-repo"
 	os.MkdirAll(testRepoPath, 0755)
 	defer os.RemoveAll(testRepoPath)
@@ -110,6 +110,7 @@ func TestAddShader(t *testing.T) {
 		t.Error("Expected shaderId to be 1")
 	}
 
+	shader.Name = "bunt4"
 	shaderId, err = repo.Add(shader)
 	if err != nil {
 		t.Log(err)
@@ -117,5 +118,69 @@ func TestAddShader(t *testing.T) {
 
 	if shaderId != 2 {
 		t.Error("Expected shaderId to be 2")
+	}
+
+	// Retrieve shaders
+	shader, err = repo.GetMeta(1)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if shader.Name != "bunt3" {
+		t.Error("Shader#1.Name should be bunt3")
+	}
+
+	_, err = repo.GetMeta(3)
+	if err == nil {
+		t.Error("Unknown Id should yield an error")
+	}
+
+	if err = repo.Delete(1); err != nil {
+		t.Error(err)
+	}
+	_, err = repo.GetMeta(1)
+	if err == nil {
+		t.Error("Shader#1 should have been deleted!")
+	}
+}
+
+func TestUpdateGetProgram(t *testing.T) {
+	testRepoPath := os.TempDir() + "/shader-test-repo"
+	os.MkdirAll(testRepoPath, 0755)
+	defer os.RemoveAll(testRepoPath)
+
+	repo := NewShaderRepository(testRepoPath)
+	if err := repo.Setup(); err != nil {
+		t.Error("Repository setup failed:", err)
+	}
+
+	shader := &Shader{
+		Name:   "bunt3",
+		Author: "Ben Utzer",
+	}
+
+	shaderId, err := repo.Add(shader)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = repo.GetProgram(shaderId)
+	if err == nil {
+		t.Error("A program should not have been found for this shader")
+	}
+
+	program := "This\nIs\nMy\nShader\nCode!"
+	err = repo.UpdateProgram(shaderId, program)
+	if err != nil {
+		t.Error(err)
+	}
+
+	retrieved, err := repo.GetProgram(shaderId)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if retrieved != program {
+		t.Error("Expected", program, " == ", retrieved)
 	}
 }
