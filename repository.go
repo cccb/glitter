@@ -152,16 +152,36 @@ func (self *ShaderRepository) GetPath(id uint64) string {
 	return fmt.Sprintf("%s/%d", self.basePath, id)
 }
 
-func (self *ShaderRepository) GetMetaFilename(id uint64) string {
-	return self.GetPath(id) + "/meta.json"
+func (self *ShaderRepository) Add(shader *Shader) error {
+	nextId := self.NextId()
+	path := self.GetPath(nextId)
+
+	if err := os.MkdirAll(path); err != nil {
+		return err
+	}
+	metaFilename := path + "/meta.json"
+
+	// Serialize meta
+	data, err := json.Marshal(shader)
+	if err != nil {
+		return err
+	}
+
+	if err := ioutil.WriteFile(metaFilename, data, 0644); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (self *ShaderRepository) GetProgramFilename(id uint64) string {
-	return self.GetPath(id) + "/program.lua"
+func (self *ShaderRepository) Delete(id uint64) error {
+	return os.RemoveAll(self.GetPath(id))
 }
 
-func (self *ShaderRepository) LoadShader(id uint64) (*Shader, error) {
-	metaFilename := self.GetMetaFilename(id)
+func (self *ShaderRepository) GetMeta(id uint64) (*Shader, error) {
+	path := self.GetPath(id)
+
+	metaFilename := path + "/meta.json"
 	data, err := ioutil.ReadFile(metaFilename)
 	if err != nil {
 		return nil, err
@@ -174,12 +194,10 @@ func (self *ShaderRepository) LoadShader(id uint64) (*Shader, error) {
 		return nil, err
 	}
 
-	// Assert a valid shaderid
 	shader.Id = id
 
 	return shader, nil
 }
 
-func NewShader(name string) *Shader {
-	return nil
+func (self *Shader) Store(path string) error {
 }
