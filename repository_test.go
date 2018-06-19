@@ -66,5 +66,56 @@ func TestListShader(t *testing.T) {
 	}
 
 	// Create a shader
+	shader := &Shader{
+		Name:   "bunt3",
+		Author: "Ben Utzer",
+	}
 
+	_, err = repo.Add(shader)
+	if err != nil {
+		t.Error(err)
+	}
+
+	shaders, err = repo.List()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(shaders) != 1 {
+		t.Error("Expected shaders list to of length 1")
+	}
+}
+
+func TestAddShader(t *testing.T) {
+	testRepoPath := os.TempDir() + "/shader-test-repo"
+	os.MkdirAll(testRepoPath, 0755)
+	defer os.RemoveAll(testRepoPath)
+
+	repo := NewShaderRepository(testRepoPath)
+	if err := repo.Setup(); err != nil {
+		t.Error("Repository setup failed:", err)
+	}
+
+	shader := &Shader{
+		Name:   "bunt3",
+		Author: "Ben Utzer",
+	}
+
+	shaderId, err := repo.Add(shader)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if shaderId != 1 {
+		t.Error("Expected shaderId to be 1")
+	}
+
+	shaderId, err = repo.Add(shader)
+	if err != nil {
+		t.Log(err)
+	}
+
+	if shaderId != 2 {
+		t.Error("Expected shaderId to be 2")
+	}
 }

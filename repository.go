@@ -128,7 +128,7 @@ func (self *ShaderRepository) List() ([]*Shader, error) {
 			continue
 		}
 
-		shader, err := self.LoadShader(shaderId)
+		shader, err := self.GetMeta(shaderId)
 		if err != nil {
 			log.Println("Error while loading shader:", err)
 			continue
@@ -140,8 +140,21 @@ func (self *ShaderRepository) List() ([]*Shader, error) {
 	return shaders, nil
 }
 
-func (self *ShaderRepository) NextId() uint64 {
-	return 1
+func (self *ShaderRepository) NextId() (uint64, error) {
+
+	shaders, err := self.List()
+	if err != nil {
+		return 0, err
+	}
+
+	var currentId uint64
+	for _, shader := range shaders {
+		if shader.Id > currentId {
+			currentId = shader.Id
+		}
+	}
+
+	return currentId + 1, nil
 }
 
 func (self *ShaderRepository) GetRepositoryIdentifierFilename() string {
@@ -152,22 +165,50 @@ func (self *ShaderRepository) GetPath(id uint64) string {
 	return fmt.Sprintf("%s/%d", self.basePath, id)
 }
 
-func (self *ShaderRepository) Add(shader *Shader) error {
-	nextId := self.NextId()
+func (self *ShaderRepository) Add(shader *Shader) (uint64, error) {
+	nextId, err := self.NextId()
+	if err != nil {
+		return 0, err
+	}
+
 	path := self.GetPath(nextId)
 
-	if err := os.MkdirAll(path); err != nil {
-		return err
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return 0, err
 	}
 	metaFilename := path + "/meta.json"
+
+	// Set auto fields
+	shader.Id = nextId
+	shader.CreatedAt = time.Now()
+	shader.UpdatedAt = time.Now()
 
 	// Serialize meta
 	data, err := json.Marshal(shader)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if err := ioutil.WriteFile(metaFilename, data, 0644); err != nil {
+		return 0, err
+	}
+
+	return nextId, nil
+}
+
+func (self *ShaderRepository) GetProgram(id uint64) (string, error) {
+	programFilename := self.GetPath(id) + "/program.lua"
+	data, err := ioutil.ReadFile(programFilename)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
+}
+
+func (self *ShaderRepository) UpdateProgram(id uint64, program string) error {
+	programFilename := self.GetPath(id) + "/program.lua"
+	if err := ioutil.WriteFile(programFilename, []byte(program), 0644); err != nil {
 		return err
 	}
 
@@ -197,7 +238,4 @@ func (self *ShaderRepository) GetMeta(id uint64) (*Shader, error) {
 	shader.Id = id
 
 	return shader, nil
-}
-
-func (self *Shader) Store(path string) error {
 }
