@@ -1,23 +1,47 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"github.com/julienschmidt/httprouter"
+	"log"
 	"net/http"
+	"os"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 var version = "unknown"
 
+func usage() {
+	flag.PrintDefaults()
+	os.Exit(-1)
+}
+
 func main() {
 	fmt.Println("Glitter\t\t\t\t\t\t", version)
 
+	// Initialize configuration
+	config := parseFlags()
+	if config.RepoPath == "" {
+		usage()
+	}
+
+	// Setup Repository
+	shaderRepo := NewShaderRepository(config.RepoPath)
+	if err := shaderRepo.Setup(); err != nil {
+		log.Fatal("Could not setup repository:", err)
+	}
+
+	// Setup HTTP API
 	router := httprouter.New()
 	apiRegisterRoutes(router)
 
 	// Welcome Page
-	router.GET("/", func(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-		fmt.Fprintf(res, "WELCOME")
-	})
+	router.GET("/",
+		func(res http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+			fmt.Fprintf(res, "WELCOME")
+		})
 
-	http.ListenAndServe("localhost:8023", router)
+	log.Println("Listening for HTTP connections on", config.Http.Listen)
+	http.ListenAndServe(config.Http.Listen, router)
 }
