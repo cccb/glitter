@@ -202,11 +202,13 @@ func (self *ShaderRepository) Update(id uint64, shader *Shader) error {
 		return err
 	}
 
-	path := self.GetPath(nextId)
+	path := self.GetPath(id)
 	metaFilename := path + "/meta.json"
 
-	// Reuse ID
+	// Reuse ID / Fixed attributes
 	shader.Id = orig.Id
+	shader.CreatedAt = orig.CreatedAt
+	shader.UpdatedAt = time.Now()
 
 	data, err := json.Marshal(shader)
 	if err != nil {

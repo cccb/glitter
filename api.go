@@ -4,6 +4,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
 	"fmt"
@@ -43,7 +44,6 @@ func apiRegisterRoutes(
 	router.GET("/api/v1/shaders/:id/program", apiEndpoint(context, apiShaderProgramGet))
 	router.POST("/api/v1/shaders/:id/program", apiEndpoint(context, apiShaderProgramUpdate))
 	router.PUT("/api/v1/shaders/:id/program", apiEndpoint(context, apiShaderProgramUpdate))
-	router.DELETE("/api/v1/shaders/:id/program", apiEndpoint(context, apiShaderProgramDelete))
 
 	return router
 }
@@ -164,8 +164,31 @@ func apiShaderUpdate(
 	res http.ResponseWriter,
 	req *http.Request,
 	params httprouter.Params) {
+	shaderId, err := strconv.ParseUint(params.ByName("id"), 10, 64)
+	if err != nil {
+		res.WriteHeader(500)
+		res.Write(apiEncodeError("param_error", err))
+		return
+	}
 
-	fmt.Fprintf(res, "apiShaderUpdate")
+	var shader *Shader
+
+	// Decode shader
+	decoder := json.NewDecoder(req.Body)
+	defer req.Body.Close()
+	if err := decoder.Decode(&shader); err != nil {
+		res.WriteHeader(500)
+		res.Write(apiEncodeError("parse_error", err))
+		return
+	}
+
+	err = ctx.ShaderRepo.Update(shaderId, shader)
+	if err != nil {
+		res.WriteHeader(500)
+		res.Write(apiEncodeError("update_error", err))
+	}
+
+	apiWriteResponseJson(res, shader)
 }
 
 func apiShaderDelete(
@@ -173,12 +196,29 @@ func apiShaderDelete(
 	res http.ResponseWriter,
 	req *http.Request,
 	params httprouter.Params) {
+	shaderId, err := strconv.ParseUint(params.ByName("id"), 10, 64)
+	if err != nil {
+		res.WriteHeader(500)
+		res.Write(apiEncodeError("param_error", err))
+		return
+	}
 
-	fmt.Fprintf(res, "apiShaderDelete")
+	err = ctx.ShaderRepo.Delete(shaderId)
+	if err != nil {
+		res.WriteHeader(500)
+		res.Write(apiEncodeError("delete_error", err))
+	}
+
+	apiWriteResponseJson(res, "SUCCESS")
 }
 
+//
 // Shader Program API
+//
 
+/*
+ GET ShaderProgram
+*/
 func apiShaderProgramGet(
 	ctx *ApiContext,
 	res http.ResponseWriter,
@@ -201,20 +241,35 @@ func apiShaderProgramGet(
 	res.Write([]byte(program))
 }
 
+/*
+ POST / PUT ShaderProgram
+*/
 func apiShaderProgramUpdate(
 	ctx *ApiContext,
 	res http.ResponseWriter,
 	req *http.Request,
 	params httprouter.Params) {
 
-	fmt.Fprintf(res, "apiShaderProgramUpdate")
-}
+	shaderId, err := strconv.ParseUint(params.ByName("id"), 10, 64)
+	if err != nil {
+		res.WriteHeader(500)
+		res.Write(apiEncodeError("param_error", err))
+		return
+	}
 
-func apiShaderProgramDelete(
-	ctx *ApiContext,
-	res http.ResponseWriter,
-	req *http.Request,
-	params httprouter.Params) {
+	program, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		res.WriteHeader(500)
+		res.Write(apiEncodeError("parse_error", err))
+		return
+	}
 
-	fmt.Fprintf(res, "apiShaderProgramDelete")
+	err = ctx.ShaderRepo.UpdateProgram(shaderId, string(program))
+	if err != nil {
+		res.WriteHeader(500)
+		res.Write(apiEncodeError("program_update_error", err))
+		return
+	}
+
+	res.Write([]byte(program))
 }
