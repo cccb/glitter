@@ -21,7 +21,7 @@ type Shader struct {
 
 	Author string `json:"author"`
 
-	Token string `json:"token"`
+	Token Token `json:"token"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -194,6 +194,31 @@ func (self *ShaderRepository) Add(shader *Shader) (uint64, error) {
 	}
 
 	return nextId, nil
+}
+
+func (self *ShaderRepository) Update(id uint64, shader *Shader) error {
+	orig, err := self.GetMeta(id)
+	if err != nil {
+		return err
+	}
+
+	path := self.GetPath(nextId)
+	metaFilename := path + "/meta.json"
+
+	// Reuse ID
+	shader.Id = orig.Id
+
+	data, err := json.Marshal(shader)
+	if err != nil {
+		return err
+	}
+
+	// Write meta file
+	if err := ioutil.WriteFile(metaFilename, data, 0644); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (self *ShaderRepository) GetProgram(id uint64) (string, error) {

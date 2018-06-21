@@ -153,6 +153,9 @@ func apiShaderGet(
 		return
 	}
 
+	// Strip token from shader
+	shader.Token = ""
+
 	apiWriteResponseJson(res, shader)
 }
 
