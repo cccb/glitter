@@ -17,33 +17,33 @@ type Shader struct {
 
 	CreatedAt time.Time `json:"created_at"`
 
-	repository *ShaderRepositroy
+	archive *gitbase.Archive
 }
 
-type ShaderRepositroy struct {
-	Base       *gitbase.Gitbase
+type ShaderRepository struct {
+	Repository *gitbase.Repository
 	Collection *gitbase.Collection
 }
 
 func NewShaderRepository(path string) (*ShaderRepository, err) {
 
 	// Initialize gitbase
-	base, err := gitbase.NewRepository(config.RepoPath)
+	repository, err := gitbase.NewRepository(config.RepoPath)
 	if err != nil {
 		return nil, err
 	}
 
 	collection, err := base.Use("shaders")
 
-	repository := &ShaderRepositroy{
-		Base:       base,
+	repository := &ShaderRepository{
+		Repository: repository,
 		Collection: collection,
 	}
 
 	return repository, nil
 }
 
-func (self *ShaderRepositroy) Create(shader *Shader) error {
+func (self *ShaderRepository) Create(shader *Shader) error {
 	// Serialize data
 	data, err := json.Marshal(shader)
 	if err != nil {
@@ -60,7 +60,7 @@ func (self *ShaderRepositroy) Create(shader *Shader) error {
 	return err
 }
 
-func (self *ShaderRepositroy) List() ([]*Shader, error) {
+func (self *ShaderRepository) List() ([]*Shader, error) {
 	// Get list of shader archives
 	archives, err := self.Collection.Archives()
 	if err != nil {
@@ -88,7 +88,7 @@ func (self *ShaderRepositroy) List() ([]*Shader, error) {
 	return shaders, nil
 }
 
-func (self *ShaderRepositroy) Find(uint64 id) (*Shader, error) {
+func (self *ShaderRepository) Find(uint64 id) (*Shader, error) {
 	archive, err := self.Collection.Find(id)
 	if err != nil {
 		return nil, err
@@ -100,7 +100,6 @@ func (self *ShaderRepositroy) Find(uint64 id) (*Shader, error) {
 	}
 
 	shader, err := LoadShader(metajson)
-
 	return shader, err
 }
 
@@ -111,7 +110,6 @@ func LoadShader(meta []byte) (*Shader, error) {
 	// Deserialize meta
 	var shader *Shader
 	err = json.Unmarshal(metajson, &shader)
-
 	return shader, err
 }
 
