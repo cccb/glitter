@@ -123,7 +123,7 @@ func (self *ShaderRepository) List() ([]*Shader, error) {
 
 		shaderId, err := strconv.ParseUint(item.Name(), 10, 64)
 		if err != nil {
-			log.Println("Found non numeric entry in shader path.")
+			log.Println("Found non numeric entry in shader path:", item.Name())
 			log.Println("Please check if the repository is OK.")
 			continue
 		}
