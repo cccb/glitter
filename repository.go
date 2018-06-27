@@ -64,7 +64,7 @@ func (self *ShaderRepositroy) List() ([]*Shader, error) {
 	// Get list of shader archives
 	archives, err := self.Collection.Archives()
 	if err != nil {
-		return error
+		return nil, err
 	}
 
 	shaders := []*Shader{}
@@ -76,11 +76,9 @@ func (self *ShaderRepositroy) List() ([]*Shader, error) {
 			continue
 		}
 
-		// Deserialize meta, add to result set
-		var shader *Shader
-		err = json.Unmarshal(metajson, &shader)
+		shader, err := LoadShader(metajson)
 		if err != nil {
-			log.Println("Error while deserializing meta.json:", err)
+			log.Println("Could not deserialize meta:", err)
 			continue
 		}
 
@@ -91,7 +89,30 @@ func (self *ShaderRepositroy) List() ([]*Shader, error) {
 }
 
 func (self *ShaderRepositroy) Find(uint64 id) (*Shader, error) {
-	return nil, nil
+	archive, err := self.Collection.Find(id)
+	if err != nil {
+		return nil, err
+	}
+
+	metajson, err := archive.Fetch("meta.json")
+	if err != nil {
+		return nil, err
+	}
+
+	shader, err := LoadShader(metajson)
+
+	return shader, err
+}
+
+//
+// Helper
+//
+func LoadShader(meta []byte) (*Shader, error) {
+	// Deserialize meta
+	var shader *Shader
+	err = json.Unmarshal(metajson, &shader)
+
+	return shader, err
 }
 
 //
