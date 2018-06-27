@@ -4,6 +4,8 @@ import (
 	"log"
 	"time"
 
+	"encoding/json"
+
 	"github.com/mhannig/gitbase"
 )
 
@@ -19,7 +21,8 @@ type Shader struct {
 }
 
 type ShaderRepositroy struct {
-	Base *gitbase.Gitbase
+	Base       *gitbase.Gitbase
+	Collection *gitbase.Collection
 }
 
 func NewShaderRepository(path string) (*ShaderRepository, err) {
@@ -30,20 +33,61 @@ func NewShaderRepository(path string) (*ShaderRepository, err) {
 		return nil, err
 	}
 
+	collection, err := base.Use("shaders")
+
 	repository := &ShaderRepositroy{
-		Base: base,
+		Base:       base,
+		Collection: collection,
 	}
 
 	return repository, nil
 }
 
 func (self *ShaderRepositroy) Create(shader *Shader) error {
+	// Serialize data
+	data, err := json.Marshal(shader)
+	if err != nil {
+		return err
+	}
 
-	return nil
+	// Create new id in collection
+	archive, err := self.Collection.NextArchive("created shader archive")
+	if err != nil {
+		return err
+	}
+
+	err = archive.Put("meta.json", data, "created shader metadata")
+	return err
 }
 
 func (self *ShaderRepositroy) List() ([]*Shader, error) {
-	return nil, nil
+	// Get list of shader archives
+	archives, err := self.Collection.Archives()
+	if err != nil {
+		return error
+	}
+
+	shaders := []*Shader{}
+	for _, archive := range archives {
+		// Get shader meta
+		metajson, err := archive.Fetch("meta.json")
+		if err != nil {
+			log.Println("Could not get meta.json from archive:", archive.Id)
+			continue
+		}
+
+		// Deserialize meta, add to result set
+		var shader *Shader
+		err = json.Unmarshal(metajson, &shader)
+		if err != nil {
+			log.Println("Error while deserializing meta.json:", err)
+			continue
+		}
+
+		shaders = append(shaders, shader)
+	}
+
+	return shaders, nil
 }
 
 func (self *ShaderRepositroy) Find(uint64 id) (*Shader, error) {
