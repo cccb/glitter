@@ -27,9 +27,9 @@ func main() {
 	}
 
 	// Setup Repository
-	shaderRepo := NewShaderRepository(config.RepoPath)
-	if err := shaderRepo.Setup(); err != nil {
-		log.Fatal("Could not setup repository:", err)
+	shaderRepo, err := NewShaderRepository(config.RepoPath)
+	if err != nil {
+		log.Panic("Could not initialize / use shader repository:", err)
 	}
 
 	// Setup HTTP API
