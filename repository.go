@@ -25,15 +25,15 @@ type ShaderRepository struct {
 	Collection *gitbase.Collection
 }
 
-func NewShaderRepository(path string) (*ShaderRepository, err) {
+func NewShaderRepository(path string) (*ShaderRepository, error) {
 
 	// Initialize gitbase
-	repository, err := gitbase.NewRepository(config.RepoPath)
+	repository, err := gitbase.NewRepository(path)
 	if err != nil {
 		return nil, err
 	}
 
-	collection, err := base.Use("shaders")
+	collection, err := repository.Use("shaders")
 
 	repository := &ShaderRepository{
 		Repository: repository,
