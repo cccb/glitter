@@ -119,7 +119,7 @@ func apiShaderCreate(
 	}
 
 	// Create Shader
-	id, err := ctx.ShaderRepo.Add(shader)
+	id, err := ctx.ShaderRepo.Create(shader)
 	if err != nil {
 		res.WriteHeader(500)
 		res.Write(apiEncodeError("parse_error", err))
@@ -143,7 +143,7 @@ func apiShaderGet(
 		return
 	}
 
-	shader, err := ctx.ShaderRepo.GetMeta(shaderId)
+	shader, err := ctx.ShaderRepo.Find(shaderId)
 	if err != nil {
 		// This most likely happened because of an invalid id
 		// so, let's respond with a 404
@@ -203,7 +203,17 @@ func apiShaderDelete(
 		return
 	}
 
-	err = ctx.ShaderRepo.Delete(shaderId)
+	shader, err := ctx.ShaderRepo.Find(shaderId)
+	if err != nil {
+		// This most likely happened because of an invalid id
+		// so, let's respond with a 404
+		res.WriteHeader(404)
+		res.Write(apiEncodeError(
+			"shader_not_found", fmt.Errorf("Shader could not be found.")))
+		return
+	}
+
+	err = shader.Destroy()
 	if err != nil {
 		res.WriteHeader(500)
 		res.Write(apiEncodeError("delete_error", err))
@@ -231,14 +241,24 @@ func apiShaderProgramGet(
 		return
 	}
 
-	program, err := ctx.ShaderRepo.GetProgram(shaderId)
+	shader, err := ctx.ShaderRepo.Find(shaderId)
+	if err != nil {
+		// This most likely happened because of an invalid id
+		// so, let's respond with a 404
+		res.WriteHeader(404)
+		res.Write(apiEncodeError(
+			"shader_not_found", fmt.Errorf("Shader could not be found.")))
+		return
+	}
+
+	program := shader.Program()
 	if err != nil {
 		// Keep things simple for now:
 		// Always return an empty program
-		program = ""
+		program = []byte{}
 	}
 
-	res.Write([]byte(program))
+	res.Write(program)
 }
 
 /*
@@ -264,12 +284,22 @@ func apiShaderProgramUpdate(
 		return
 	}
 
-	err = ctx.ShaderRepo.UpdateProgram(shaderId, string(program))
+	shader, err := ctx.ShaderRepo.Find(shaderId)
+	if err != nil {
+		// This most likely happened because of an invalid id
+		// so, let's respond with a 404
+		res.WriteHeader(404)
+		res.Write(apiEncodeError(
+			"shader_not_found", fmt.Errorf("Shader could not be found.")))
+		return
+	}
+
+	err = shader.UpdateProgram(program)
 	if err != nil {
 		res.WriteHeader(500)
 		res.Write(apiEncodeError("program_update_error", err))
 		return
 	}
 
-	res.Write([]byte(program))
+	res.Write(program)
 }

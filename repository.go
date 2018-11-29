@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -16,6 +17,8 @@ type Shader struct {
 	Author      string `json:"author"`
 
 	CreatedAt time.Time `json:"created_at"`
+
+	Token string `json:"token"`
 
 	archive *gitbase.Archive
 }
@@ -35,29 +38,30 @@ func NewShaderRepository(path string) (*ShaderRepository, error) {
 
 	collection, err := repository.Use("shaders")
 
-	repository := &ShaderRepository{
+	repo := &ShaderRepository{
 		Repository: repository,
 		Collection: collection,
 	}
 
-	return repository, nil
+	return repo, nil
 }
 
-func (self *ShaderRepository) Create(shader *Shader) error {
+func (self *ShaderRepository) Create(shader *Shader) (uint64, error) {
 	// Serialize data
 	data, err := json.Marshal(shader)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// Create new id in collection
 	archive, err := self.Collection.NextArchive("created shader archive")
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	err = archive.Put("meta.json", data, "created shader metadata")
-	return err
+
+	return archive.Id, err
 }
 
 func (self *ShaderRepository) List() ([]*Shader, error) {
@@ -76,7 +80,7 @@ func (self *ShaderRepository) List() ([]*Shader, error) {
 			continue
 		}
 
-		shader, err := LoadShader(metajson)
+		shader, err := UnmarshalShader(metajson)
 		if err != nil {
 			log.Println("Could not deserialize meta:", err)
 			continue
@@ -88,7 +92,7 @@ func (self *ShaderRepository) List() ([]*Shader, error) {
 	return shaders, nil
 }
 
-func (self *ShaderRepository) Find(uint64 id) (*Shader, error) {
+func (self *ShaderRepository) Find(id uint64) (*Shader, error) {
 	archive, err := self.Collection.Find(id)
 	if err != nil {
 		return nil, err
@@ -99,37 +103,72 @@ func (self *ShaderRepository) Find(uint64 id) (*Shader, error) {
 		return nil, err
 	}
 
-	shader, err := LoadShader(metajson)
+	shader, err := UnmarshalShader(metajson)
+	if err != nil {
+		shader.archive = archive
+	}
+
 	return shader, err
+}
+
+func (self *ShaderRepository) Update(id uint64, shader *Shader) error {
+	current, err := self.Find(id)
+	if err != nil {
+		return err
+	}
+
+	return current.Update(shader)
 }
 
 //
 // Helper
 //
-func LoadShader(meta []byte) (*Shader, error) {
+func UnmarshalShader(metajson []byte) (*Shader, error) {
 	// Deserialize meta
 	var shader *Shader
-	err = json.Unmarshal(metajson, &shader)
+	err := json.Unmarshal(metajson, &shader)
 	return shader, err
 }
 
-//
-// Active Shader
-//
-func (self *Shader) Update(meta *Shader) error {
+func MarshalShader(shader *Shader) ([]byte, error) {
+	return json.Marshal(shader)
+}
 
-	return nil
+func (self *Shader) Update(next *Shader) error {
+	if self.archive == nil {
+		return fmt.Errorf("Shader is not persisted")
+	}
+
+	payload, err := MarshalShader(next)
+	if err != nil {
+		return err
+	}
+
+	return self.archive.Put("meta.json", payload, "updated shader")
 }
 
 func (self *Shader) UpdateProgram(program []byte) error {
+	if self.archive == nil {
+		return fmt.Errorf("Shader is not persisted")
+	}
 
-	return nil
+	return self.archive.Put("program", program, "updated shader program")
 }
 
 func (self *Shader) Program() []byte {
-	return []byte{}
+	if self.archive == nil {
+		return []byte{} // not persisted, nothing to do
+	}
+
+	program, _ := self.archive.Fetch("program")
+
+	return program
 }
 
-func (self *Shader) Delete() error {
-	return nil
+func (self *Shader) Destroy() error {
+	if self.archive == nil {
+		return fmt.Errorf("Shader is not persisted")
+	}
+
+	return self.archive.Destroy("removed shader")
 }

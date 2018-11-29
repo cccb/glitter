@@ -37,6 +37,7 @@ type Config struct {
 	Mqtt     *MqttConfig
 	Http     *HttpConfig
 	RepoPath string
+	GpioPin  int
 }
 
 func parseFlags() *Config {
@@ -48,6 +49,8 @@ func parseFlags() *Config {
 	mqttBaseTopic := flag.String("topic", "glitter", "MQTT base topic")
 
 	httpListen := flag.String("listen", ":8023", "HTTP Listen Port")
+
+	gpioPin := flag.Int("gpio", 479, "GPIO pin")
 
 	flag.Parse()
 
@@ -67,6 +70,7 @@ func parseFlags() *Config {
 		Mqtt:     mqttConfig,
 		Http:     httpConfig,
 		RepoPath: *repo,
+		GpioPin:  *gpioPin,
 	}
 
 	return config
